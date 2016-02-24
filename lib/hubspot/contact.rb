@@ -62,6 +62,18 @@ module Hubspot
         new(response)
       end
 
+      def find_by_vid(vids)
+        batch_mode, path, params = case vids
+                                     when Integer then [false, GET_CONTACT_BY_ID_PATH, { contact_id: vids }]
+                                     when Array then [true, CONTACT_BATCH_PATH, { batch_vid: vids }]
+                                     else raise Hubspot::InvalidParams, 'expecting Integer or Array of Integers parameter'
+                                   end
+
+        response = Hubspot::Connection.get_json(path, params)
+        raise Hubspot::ApiError if batch_mode
+        new(response)
+      end
+
       # {https://developers.hubspot.com/docs/methods/contacts/get_contact_by_email}
       # {https://developers.hubspot.com/docs/methods/contacts/get_batch_by_email}
       def find_by_email(emails)
