@@ -65,7 +65,7 @@ module Hubspot
       # Riskified addition:
       # Using {https://developers.hubspot.com/docs/methods/contacts/get_recently_updated_contacts}
       # and enriching the updates with the full contacts info
-      def recent(opt={})
+      def recent(opts={})
         path, opts = [RECENT_CONTACTS_PATH, Hubspot::ContactProperties.add_default_parameters(opts)]
         response = Hubspot::Connection.get_json(path, opts)
         response_vids = response['contacts'].map{|c| c['vid']}
@@ -79,7 +79,7 @@ module Hubspot
 
         #response['contacts'].map do |contact|
         #  contact['properti']
-        #end
+        # end
         properties = Hubspot::Contact.find_by_vid(vid).properties
         properties['vid'] = vid
         properties
