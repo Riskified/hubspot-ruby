@@ -62,16 +62,27 @@ module Hubspot
         new(response)
       end
 
-      def find_by_vid(vids)
-        batch_mode, path, params = case vids
-                                     when Integer then [false, GET_CONTACT_BY_ID_PATH, { contact_id: vids }]
-                                     when Array then [true, CONTACT_BATCH_PATH, { batch_vid: vids }]
-                                     else raise Hubspot::InvalidParams, 'expecting Integer or Array of Integers parameter'
-                                   end
+      # Riskified addition:
+      # Using {https://developers.hubspot.com/docs/methods/contacts/get_recently_updated_contacts}
+      # and enriching the updates with the full contacts info
+      def recent(opt={})
+        path, opts = [RECENT_CONTACTS_PATH, Hubspot::ContactProperties.add_default_parameters(opts)]
+        response = Hubspot::Connection.get_json(path, opts)
+        response_vids = response['contacts'].map{|c| c['vid']}
+        puts response_vids
+        contact_by_vid = {}
+        find_by_id(response_vids).each do |contact|
+          contact_by_vid[contact['vid']] = contact if contact['vid']
+        end
+        puts "-------------"
+        puts contact_by_vid
 
-        response = Hubspot::Connection.get_json(path, params)
-        raise Hubspot::ApiError if batch_mode
-        new(response)
+        #response['contacts'].map do |contact|
+        #  contact['properti']
+        #end
+        properties = Hubspot::Contact.find_by_vid(vid).properties
+        properties['vid'] = vid
+        properties
       end
 
       # {https://developers.hubspot.com/docs/methods/contacts/get_contact_by_email}
