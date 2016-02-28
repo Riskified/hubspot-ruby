@@ -13,6 +13,18 @@ module Hubspot
         key_name = opts[:key_name] || "property"
         hash.map{ |k,v| { key_name => k.to_s, "value" => v}}
       end
+
+      def nested_get(hash, key_arr)
+        data = hash
+        key_arr.each do |key|
+          if data.has_key?(key)
+            data = data[key]
+          else
+            return nil
+          end
+        end
+        return data
+      end
     end
   end
 end

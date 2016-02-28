@@ -62,6 +62,46 @@ module Hubspot
         new(response)
       end
 
+      def find_raw_by_id(vids)
+        batch_mode, path, params = case vids
+                                     when Integer then [false, GET_CONTACT_BY_ID_PATH, { contact_id: vids }]
+                                     when Array then [true, CONTACT_BATCH_PATH, { batch_vid: vids }]
+                                     else raise Hubspot::InvalidParams, 'expecting Integer or Array of Integers parameter'
+                                   end
+        raise Hubspot::ApiError if batch_mode
+        Hubspot::Connection.get_json(path, params)
+      end
+
+      # Riskified addition:
+      # Using {https://developers.hubspot.com/docs/methods/contacts/get_recently_updated_contacts}
+      # and enriching the updates with full contacts info
+      def full_recent_contacts(opts={})
+        path, opts = [RECENT_CONTACTS_PATH, Hubspot::ContactProperties.add_default_parameters(opts)]
+        contacts_first_updated = Time.now.to_i
+        # first get all contacts in time range the (weird) hubspot api way
+        contacts = []
+        if opts[:updated_after]
+          while contacts_first_updated >= opts[:updated_after]
+              response = Hubspot::Connection.get_json(path, opts)
+              contacts += response['contacts'].select {|contact|
+                contact_timestamp = Hubspot::Utils.nested_get(contact, ['properties', 'lastmodifieddate', 'value'])
+                contact_timestamp != nil and contact_timestamp.to_i.div(1000) > opts[:updated_after]
+              }
+              contacts_first_updated = response['time-offset'].to_i.div(1000)
+              opts[:timeOffset] = response['time-offset']
+              opts[:vidOffset] = response['vid-offset']
+          end
+        else
+          contacts = Hubspot::Connection.get_json(path, opts)['contacts']
+        end
+        # then enrich each update with the full contact info
+        contacts.each do |contact|
+          full_properties = find_raw_by_id(contact['vid'])
+          contact['properties'].merge!(full_properties) # required for polling updates only
+        end
+        contacts
+      end
+
       # {https://developers.hubspot.com/docs/methods/contacts/get_contact_by_email}
       # {https://developers.hubspot.com/docs/methods/contacts/get_batch_by_email}
       def find_by_email(emails)
