@@ -80,12 +80,12 @@ module Hubspot
         contacts_first_updated = Time.now.to_i
         # first get all contacts in time range the (weird) hubspot api way
         contacts = []
-        if opts[:updated_after]
-          while contacts_first_updated >= opts[:updated_after]
+        if opts[:updatedAfter]
+          while contacts_first_updated >= opts[:updatedAfter]
               response = Hubspot::Connection.get_json(path, opts)
               contacts += response['contacts'].select {|contact|
                 contact_timestamp = Hubspot::Utils.nested_get(contact, ['properties', 'lastmodifieddate', 'value'])
-                contact_timestamp != nil and contact_timestamp.to_i.div(1000) > opts[:updated_after]
+                contact_timestamp != nil and contact_timestamp.to_i.div(1000) > opts[:updatedAfter]
               }
               contacts_first_updated = response['time-offset'].to_i.div(1000)
               opts[:timeOffset] = response['time-offset']
@@ -96,8 +96,8 @@ module Hubspot
         end
         # then enrich each update with the full contact info
         contacts.each do |contact|
-          full_properties = find_raw_by_id(contact['vid'])
-          contact['properties'].merge!(full_properties) # required for polling updates only
+          full_properties = find_raw_by_id(contact['vid'])['properties']
+          contact['properties'].merge!(full_properties)
         end
         contacts
       end
