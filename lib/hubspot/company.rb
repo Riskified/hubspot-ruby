@@ -116,7 +116,7 @@ module Hubspot
                     end
       Hubspot::Connection.put_json(ADD_CONTACT_TO_COMPANY_PATH,
                                    params: {
-                                       company_id: vid,
+                                       company_id: @vid,
                                        vid: contact_vid,
                                    },
                                    body: nil)
